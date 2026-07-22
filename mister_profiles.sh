@@ -6,10 +6,11 @@
 # but the method of implimenting user profiles was created, 
 # tested, and implimented by humans before this script could be coded.
 #
-# Gives each user their own RetroAchievements login and their own save
-# games / save states, by swapping two things per "profile":
+# Gives each person their own RetroAchievements login and their own save
+# games / save states, by swapping three things per "profile":
 #   - /media/fat/retroachievements.cfg   (a per-profile copy)
 #   - /media/fat/saves                   (a symlink to a per-profile folder)
+#   - /media/fat/savestates              (a symlink to a per-profile folder)
 #
 # IMPORTANT — read before using:
 #   MiSTer itself has no concept of user accounts. RetroAchievements
@@ -24,15 +25,17 @@
 #
 # Install:
 #   Copy this file to /media/fat/Scripts/mister_profiles.sh
-#   chmod +x /media/fat/Scripts/mister_profiles.sh
 #   Run it from the OSD: F12 -> Scripts -> mister_profiles
 #
 # Layout this script creates:
 #   /media/fat/profiles/<name>/retroachievements.cfg
 #   /media/fat/profiles/<name>/saves/<CORE>/...
+#   /media/fat/profiles/<name>/savestates/<CORE>/...
 #   /media/fat/profiles/.current              <- name of active profile
 #   /media/fat/saves                          <- symlink to the active
 #                                                 profile's saves folder
+#   /media/fat/savestates                     <- symlink to the active
+#                                                 profile's savestates folder
 #   /media/fat/retroachievements.cfg          <- copy of the active
 #                                                 profile's RA credentials
 
@@ -41,6 +44,7 @@ set -euo pipefail
 BASE="/media/fat"
 PROFILES_DIR="$BASE/profiles"
 SAVES_LINK="$BASE/saves"
+SAVESTATES_LINK="$BASE/savestates"
 RA_CFG="$BASE/retroachievements.cfg"
 CURRENT_FILE="$PROFILES_DIR/.current"
 
@@ -67,12 +71,18 @@ list_profiles() {
 migrate_existing_into_profile() {
     local name="$1"
     local dir="$PROFILES_DIR/$name"
-    mkdir -p "$dir/saves"
+    mkdir -p "$dir/saves" "$dir/savestates"
 
     if [ -d "$SAVES_LINK" ] && [ ! -L "$SAVES_LINK" ]; then
         echo "Migrating existing saves into profile '$name'..."
         cp -a "$SAVES_LINK/." "$dir/saves/" 2>/dev/null || true
         rm -rf "$SAVES_LINK"
+    fi
+
+    if [ -d "$SAVESTATES_LINK" ] && [ ! -L "$SAVESTATES_LINK" ]; then
+        echo "Migrating existing savestates into profile '$name'..."
+        cp -a "$SAVESTATES_LINK/." "$dir/savestates/" 2>/dev/null || true
+        rm -rf "$SAVESTATES_LINK"
     fi
 
     if [ -f "$RA_CFG" ] && [ ! -L "$RA_CFG" ]; then
@@ -90,7 +100,7 @@ create_profile() {
         return 1
     fi
 
-    mkdir -p "$dir/saves"
+    mkdir -p "$dir/saves" "$dir/savestates"
 
     if [ -f "$BASE/retroachievements.cfg.template" ]; then
         cp "$BASE/retroachievements.cfg.template" "$dir/retroachievements.cfg"
@@ -165,6 +175,17 @@ switch_profile() {
     fi
     ln -s "$dir/saves" "$SAVES_LINK"
 
+    if [ -L "$SAVESTATES_LINK" ] || [ ! -e "$SAVESTATES_LINK" ]; then
+        rm -f "$SAVESTATES_LINK"
+    else
+        echo "Refusing to touch $SAVESTATES_LINK — it's a real directory,"
+        echo "not a symlink managed by this script. Run 'Switch profile'"
+        echo "once on a fresh profile first so it can migrate the data"
+        echo "safely, or move $SAVESTATES_LINK aside by hand."
+        return 1
+    fi
+    ln -s "$dir/savestates" "$SAVESTATES_LINK"
+
     if [ -f "$dir/retroachievements.cfg" ]; then
         cp -a "$dir/retroachievements.cfg" "$RA_CFG"
     fi
@@ -172,8 +193,9 @@ switch_profile() {
     echo "$name" > "$CURRENT_FILE"
 
     echo "Switched to profile '$name'."
-    echo "Saves  -> $dir/saves"
-    echo "RA cfg -> $dir/retroachievements.cfg"
+    echo "Saves      -> $dir/saves"
+    echo "Savestates -> $dir/savestates"
+    echo "RA cfg     -> $dir/retroachievements.cfg"
     echo
     echo "A reboot is recommended so the RA-enabled MiSTer binary re-reads"
     echo "the new credentials cleanly."
@@ -214,7 +236,8 @@ case "$choice" in
         echo
         read -p "Profile to switch to (existing or new name): " target
 
-        if [ ! -L "$SAVES_LINK" ] && [ -d "$SAVES_LINK" ]; then
+        if { [ ! -L "$SAVES_LINK" ] && [ -d "$SAVES_LINK" ]; } || \
+           { [ ! -L "$SAVESTATES_LINK" ] && [ -d "$SAVESTATES_LINK" ]; }; then
             migrate_existing_into_profile "$target"
         fi
         if [ ! -d "$PROFILES_DIR/$target" ]; then
