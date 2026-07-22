@@ -1,4 +1,4 @@
-# MiSTer-FPGA-User-Profiles-
+# MiSTer-FPGA-User-Profiles
 Adds user profiles to the MiSTer FPGA Project. 
 
 1) Place mister_profiles.sh inside /media/fat/Scripts/ on your MiSTer SD card.
