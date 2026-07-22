@@ -3,7 +3,7 @@
 # mister_profiles.sh — per-user profiles for MiSTer FPGA
 #
 # This install script was coded with help from Claude AI
-# but the method of implimenting user profiles was created, 
+# but the method of implimenting user profiles was created,
 # tested, and implimented by humans before this script could be coded.
 #
 # Gives each person their own RetroAchievements login and their own save
