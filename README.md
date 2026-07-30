@@ -78,9 +78,12 @@ no longer tracked. Not possible anymore.)
 
 ## Install
 
-```bash
-cp mister_profiles.sh /media/fat/Scripts/mister_profiles.sh
-chmod +x /media/fat/Scripts/mister_profiles.sh
+1. Either place [`mister_profiles.sh`](Scripts/mister_profiles.sh) inside `Scripts` (`/media/fat/Scripts`) on your MiSTer SD card or add the following to `downloader.ini` on your SD card (or `/media/fat/downloader.ini`):
+2. Run `update.sh` or `update_all.sh` to install the script if you added it to `downloader.ini`.
+
+```ini
+[BertSVG/MiSTer_FPGA_User_Profiles]
+db_url = https://raw.githubusercontent.com/BertSVG/MiSTer_FPGA_User_Profiles/db/db.json.zip
 ```
 
 Run it from the OSD: **F12 → Scripts → mister_profiles**. Launching it
